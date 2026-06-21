@@ -1,5 +1,7 @@
 # Sphere Node
 
+Status: v1, work in progress.
+
 A Sphere Node is a single-tenant, self-hosted content server. It publishes one
 publisher's content as agent-readable "fragments" and serves them over a small
 HTTP contract designed for AI agents: a public discovery document, per-fragment
@@ -112,3 +114,13 @@ To run migrations against a local D1 for `wrangler dev`:
 ```bash
 wrangler d1 migrations apply SPHERE_DB --local
 ```
+
+## License
+
+The Sphere Node source code in this repository is licensed under the
+[Apache License 2.0](LICENSE).
+
+This code license is separate from any content license. The CC BY license used
+for published content and fragments (for example the `SPHERE_DEFAULT_LICENSE`
+default and the sample fragment) applies to that content, not to this code.
+Apache 2.0 covers the node software; CC BY does not.
