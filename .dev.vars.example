@@ -1,0 +1,4 @@
+# Copy to `.dev.vars` for local `wrangler dev`. NEVER commit `.dev.vars`.
+# In production this is set as a Wrangler secret, not a var:
+#   wrangler secret put SPHERE_OWNER_TOKEN
+SPHERE_OWNER_TOKEN=local-dev-owner-token-change-me
