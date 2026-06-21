@@ -2,6 +2,8 @@
 
 Status: v1, work in progress.
 
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/marianoviola/sphere-node)
+
 A Sphere Node is a single-tenant, self-hosted content server. It publishes one
 publisher's content as agent-readable "fragments" and serves them over a small
 HTTP contract designed for AI agents: a public discovery document, per-fragment
@@ -43,8 +45,10 @@ future Node+S3+Postgres or AWS adapter would be a sibling folder under
 
 ### Deploy to Cloudflare button
 
+The button at the top of this README points at this repository:
+
 ```markdown
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/OWNER/sphere-node)
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/marianoviola/sphere-node)
 ```
 
 The button reads `wrangler.toml`, provisions a D1 database, an R2 bucket, and a
