@@ -21,6 +21,8 @@ compatibility_date = "2025-09-01"
 
 [vars]
 SPHERE_PUBLISHER_NAME = "Example Publisher"
+# Optional one-line tagline shown on the human-readable index page.
+SPHERE_PUBLISHER_SUMMARY = ""
 SPHERE_DEFAULT_LICENSE = "CC-BY"
 
 # SPHERE_OWNER_TOKEN is a SECRET, never a var and never committed:

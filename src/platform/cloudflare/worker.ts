@@ -6,8 +6,14 @@
 // (this is the platform layer); core/ never imports them.
 
 import { buildDiscovery } from "../../core/discovery.ts";
-import { gateContent } from "../../core/gate.ts";
+import { DEFAULT_PREVIEW_CHARS, gateContent } from "../../core/gate.ts";
 import { getContent } from "../../core/fragments.ts";
+import {
+  renderFragmentPage,
+  renderIndexPage,
+  renderNotFoundPage,
+  type SiteChrome,
+} from "../../core/html.ts";
 import { makeEvent, recordEvent, type EventType } from "../../core/ledger.ts";
 import type {
   BlobStore,
@@ -30,6 +36,7 @@ const TOP_FRAGMENTS_LIMIT = 5;
 
 export interface NodeConfig {
   publisherName: string;
+  publisherSummary?: string;
   defaultLicense: string;
   ownerToken: string;
 }
@@ -53,6 +60,7 @@ interface Env {
   SPHERE_CONTENT: R2Bucket;
   SPHERE_CACHE: KVNamespace;
   SPHERE_PUBLISHER_NAME: string;
+  SPHERE_PUBLISHER_SUMMARY?: string;
   SPHERE_DEFAULT_LICENSE: string;
   SPHERE_OWNER_TOKEN: string;
 }
@@ -62,6 +70,22 @@ function json(body: unknown, status = 200, headers: Record<string, string> = {})
     status,
     headers: { "content-type": "application/json; charset=utf-8", ...headers },
   });
+}
+
+function html(body: string, status = 200): Response {
+  return new Response(body, {
+    status,
+    headers: { "content-type": "text/html; charset=utf-8" },
+  });
+}
+
+/** Content negotiation: only browsers (Accept includes text/html) get the human surface. */
+function wantsHtml(request: Request): boolean {
+  return (request.headers.get("accept") ?? "").includes("text/html");
+}
+
+function chromeFor(deps: Deps): SiteChrome {
+  return { publisherName: deps.config.publisherName, publisherSummary: deps.config.publisherSummary };
 }
 
 function logEvent(
@@ -138,6 +162,52 @@ async function handleContent(
   return new Response(result.body, { status: result.status, headers });
 }
 
+// --- Human face -------------------------------------------------------------
+// Rendered alongside the machine contract for browser requests only. These
+// reuse the same ports the agent routes use; rendering itself lives in core/.
+
+async function handleHumanIndex(deps: Deps, ctx: RequestContext, request: Request): Promise<Response> {
+  logEvent(deps, ctx, request, null, "discovery");
+
+  const fragments = await deps.fragments.list();
+  const views = fragments.map((f) => ({
+    id: f.manifest.id,
+    title: f.manifest.title,
+    summary: typeof f.manifest.summary === "string" ? f.manifest.summary : undefined,
+    policy: f.manifest.access.policy,
+  }));
+  return html(renderIndexPage(chromeFor(deps), views));
+}
+
+async function handleHumanFragment(
+  deps: Deps,
+  ctx: RequestContext,
+  request: Request,
+  id: string,
+): Promise<Response> {
+  const fragment = await deps.fragments.get(id);
+  if (!fragment) {
+    return html(renderNotFoundPage(chromeFor(deps), `No fragment "${id}".`), 404);
+  }
+
+  const content = await getContent(deps.blobs, fragment);
+  if (content === null) {
+    return html(renderNotFoundPage(chromeFor(deps), `No content for "${id}".`), 404);
+  }
+
+  const policy = fragment.manifest.access.policy;
+  const gated = policy === "paid" || policy === "metered";
+  let markdown = content;
+  if (gated) {
+    const previewChars = fragment.manifest.access.preview_chars ?? DEFAULT_PREVIEW_CHARS;
+    markdown = content.slice(0, Math.max(0, previewChars));
+  }
+
+  // A human page never completes payment: a gated view is a preview-only read.
+  logEvent(deps, ctx, request, id, gated ? "preview" : "access");
+  return html(renderFragmentPage(chromeFor(deps), fragment.manifest, { markdown, gated }));
+}
+
 function isOwner(deps: Deps, request: Request): boolean {
   const auth = request.headers.get("authorization");
   if (!auth) return false;
@@ -199,7 +269,8 @@ export async function handleRequest(
     return json({ error: "method_not_allowed" }, 405, { allow: "GET" });
   }
 
-  // Public face.
+  // Machine contract (unchanged). These always return the same bytes regardless
+  // of the Accept header, so agents and the human surface never collide.
   if (path === "/.well-known/sphere.json") {
     return handleDiscovery(deps, ctx, request);
   }
@@ -212,6 +283,19 @@ export async function handleRequest(
   const contentMatch = path.match(/^\/fragments\/([^/]+)\/content\.md$/);
   if (contentMatch) {
     return handleContent(deps, ctx, request, decodeURIComponent(contentMatch[1]!));
+  }
+
+  // Human face. Only served when the client asks for HTML; otherwise these
+  // paths fall through to the 404 they returned before, so the machine
+  // contract is untouched.
+  if (wantsHtml(request)) {
+    if (path === "/") {
+      return handleHumanIndex(deps, ctx, request);
+    }
+    const fragmentPageMatch = path.match(/^\/fragments\/([^/]+)\/?$/);
+    if (fragmentPageMatch) {
+      return handleHumanFragment(deps, ctx, request, decodeURIComponent(fragmentPageMatch[1]!));
+    }
   }
 
   // Owner face. Read-only, bearer-gated, no ledger events.
@@ -242,6 +326,7 @@ export function depsFromEnv(env: Env): Deps {
     payments: d1PaymentStore(env.SPHERE_DB),
     config: {
       publisherName: env.SPHERE_PUBLISHER_NAME ?? "Sphere Node",
+      publisherSummary: env.SPHERE_PUBLISHER_SUMMARY || undefined,
       defaultLicense: env.SPHERE_DEFAULT_LICENSE ?? "CC-BY",
       ownerToken: env.SPHERE_OWNER_TOKEN ?? "",
     },

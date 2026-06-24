@@ -23,6 +23,13 @@ Public, unauthenticated, for agents:
   preview plus a `402` payment challenge for `paid`/`metered` fragments. In v1
   the challenge is returned but not verified (payment is a dormant stub).
 
+Human, content-negotiated (browsers only):
+
+- `GET /` — HTML index of the publisher and its fragments.
+- `GET /fragments/{id}` — readable HTML page: full content for `free`
+  fragments, a preview plus a gated note for `paid`/`metered`. Requests with
+  `Accept: text/html` get HTML; the machine routes above are unchanged.
+
 Owner, bearer-token, read-only:
 
 - `GET /owner/summary` — counts, top fragments, revenue (zero in v1).

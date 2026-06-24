@@ -70,6 +70,41 @@ dormant stub. Ledger event: `access` (free) or `payment_required` (gated).
 
 `404` if the fragment is unknown.
 
+## Human face (content-negotiated, for browsers)
+
+The node also renders a minimal human-readable surface. It is selected purely by
+content negotiation: a request whose `Accept` header includes `text/html` gets
+HTML; everything else is unaffected. The machine routes above are byte-for-byte
+unchanged regardless of `Accept` — a browser hitting
+`/fragments/{id}/content.md` still gets the `402`/markdown machine response. The
+human routes are additive: their paths returned `404` before and still `404`
+(as JSON) for non-HTML clients.
+
+A browser never sees a raw `402` or raw Markdown.
+
+### `GET /` (Accept: text/html)
+
+Publisher index: the publisher name and optional summary
+(`SPHERE_PUBLISHER_NAME`, `SPHERE_PUBLISHER_SUMMARY`), a list of fragments
+(title, summary, and a policy badge, each linking to its reading page), and a
+footer crediting the Sphere project. Driven entirely by node data and config.
+
+Ledger event: `discovery`.
+
+### `GET /fragments/{id}` (Accept: text/html)
+
+Fragment reading page, rendered in the shared template.
+
+- Policy `free`/`sponsored`: the full `content.md` rendered to HTML.
+- Policy `paid`/`metered`: only the preview (first `access.preview_chars`
+  characters) rendered to HTML, plus a short line explaining the rest is gated
+  and pointing at the machine `content.md` route. Payment is never performed
+  from a browser, so a gated page is a preview-only read.
+
+`404` (HTML) if the fragment or its content is unknown.
+
+Ledger event: `access` (free) or `preview` (gated).
+
 ## Owner face (bearer token, single owner)
 
 All owner endpoints require `Authorization: Bearer <SPHERE_OWNER_TOKEN>` and are
@@ -114,8 +149,10 @@ Payment ledger. Empty in v1; the shape is present for forward compatibility.
 Every public request appends exactly one row: `ts, fragment_id, event_type,
 ua_family, ref_source`. `event_type` is one of: `discovery`, `manifest`,
 `preview`, `access`, `payment_required`, `unlock`. `unlock` is dormant in v1
-(emitted only once payment verification is implemented); `preview` is reserved
-for explicit preview-only requests.
+(emitted only once payment verification is implemented); `preview` is emitted
+when a browser views the human page of a gated fragment (a preview-only read).
+Human and agent traffic share these event types and are distinguished by
+`ua_family` (e.g. `browser` vs `agent`).
 
 The ledger NEVER stores IP address, full user-agent, or any other PII.
 `ua_family` is a coarse bucket; `ref_source` is a normalized referrer origin.

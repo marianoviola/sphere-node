@@ -6,7 +6,7 @@
 import type { FragmentManifest } from "./types.ts";
 import type { EventType } from "./ledger.ts";
 
-const DEFAULT_PREVIEW_CHARS = 500;
+export const DEFAULT_PREVIEW_CHARS = 500;
 
 export interface PaymentChallenge {
   profile: string;
