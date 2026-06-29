@@ -23,6 +23,12 @@ compatibility_date = "2025-09-01"
 SPHERE_PUBLISHER_NAME = "Example Publisher"
 # Optional one-line tagline shown on the human-readable index page.
 SPHERE_PUBLISHER_SUMMARY = ""
+# Publisher attribution that travels with the discovery doc and every fragment.
+# SPHERE_PUBLISHER_URL: the publisher's canonical URL (omitted from output if blank).
+# SPHERE_PUBLISHER_ICON: URL to the publisher mark; defaults to this node's own
+#   served mark at /assets/sphere-mark.svg when left blank.
+SPHERE_PUBLISHER_URL = ""
+SPHERE_PUBLISHER_ICON = ""
 SPHERE_DEFAULT_LICENSE = "CC-BY"
 
 # SPHERE_OWNER_TOKEN is a SECRET, never a var and never committed:
