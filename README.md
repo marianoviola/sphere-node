@@ -1,6 +1,6 @@
 # Sphere Node
 
-Status: v1, work in progress.
+Status: v1.
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/marianoviola/sphere-node)
 
