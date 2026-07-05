@@ -13,11 +13,39 @@ on Cloudflare Workers with D1, R2, and KV, and you run it yourself.
 This repository is the node. The authoring plugin and its tools live in a
 separate repository and are out of scope here.
 
+## From Deploy to your first fragment
+
+Three steps take a fresh node from the Deploy button to serving content. Do them
+in order — the button provisions the resources but does not apply the schema, so
+step 2 is required or the node has no tables to read.
+
+1. **Deploy.** Click **Deploy to Cloudflare** above. It provisions D1, R2, and KV
+   and deploys the worker.
+2. **Apply the schema (required).** The button creates the database but not its
+   tables. Create them:
+
+   ```bash
+   wrangler d1 migrations apply SPHERE_DB --remote
+   ```
+
+3. **Set the owner token.** This gates publishing and the owner endpoints:
+
+   ```bash
+   wrangler secret put SPHERE_OWNER_TOKEN
+   ```
+
+Then publish your first fragment — with the Sphere plugin's `publish_fragment`
+tool, or with `scripts/publish.ts` (see [Publish a fragment](#publish-a-fragment)
+below). Until then the node is live and valid: its discovery document is an empty
+`200`, and the human index shows a short "live and ready" empty state.
+
 ## What it serves
 
 Public, unauthenticated, for agents:
 
 - `GET /.well-known/sphere.json` — publisher discovery (always `200`).
+- `GET /llms.txt` — plain-text discovery aid (llms.txt convention): publisher,
+  a pointer to the discovery document, and a flat list of fragment content URLs.
 - `GET /fragments/{id}/sphere.json` — fragment manifest.
 - `GET /fragments/{id}/content.md` — full content for `free` fragments, or a
   preview plus a `402` payment challenge for `paid`/`metered` fragments. In v1
