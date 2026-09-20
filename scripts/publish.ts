@@ -9,13 +9,14 @@
 // run against in-memory adapters in tests or against Cloudflare via wrangler in
 // real use.
 //
-// Usage:
+// Usage (from the repo, or as the package's `sphere-node` bin):
 //   node scripts/publish.ts <fragment-dir>             # dry run: validate + plan
 //   node scripts/publish.ts <fragment-dir> --remote    # execute via wrangler
+//   npx sphere-node <fragment-dir> [--remote]          # same, from a consumer
 
 import { readFile, readdir } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
-import { writeFileSync, mkdtempSync } from "node:fs";
+import { writeFileSync, mkdtempSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -136,7 +137,7 @@ async function main(argv: string[]): Promise<void> {
   const remote = argv.includes("--remote");
   const dir = args[0];
   if (!dir) {
-    console.error("Usage: node scripts/publish.ts <fragment-dir> [--remote]");
+    console.error("Usage: sphere-node <fragment-dir> [--remote]");
     process.exitCode = 1;
     return;
   }
@@ -174,8 +175,19 @@ async function main(argv: string[]): Promise<void> {
   console.log(`Published ${result.id} (${result.mediaCount} media file(s)).`);
 }
 
-// Run main() only when invoked as a script, not when imported by tests.
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+// Run main() only when invoked as a script, not when imported by tests. The
+// bin entry is a symlink under node_modules/.bin, so compare real paths.
+function invokedDirectly(): boolean {
+  const argv1 = process.argv[1];
+  if (!argv1) return false;
+  try {
+    return realpathSync(argv1) === realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+}
+
+if (invokedDirectly()) {
   main(process.argv.slice(2)).catch((err) => {
     console.error(err instanceof Error ? err.message : err);
     process.exitCode = 1;

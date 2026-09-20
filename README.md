@@ -10,8 +10,13 @@ HTTP contract designed for AI agents: a public discovery document, per-fragment
 manifests, free content, and a `402` payment challenge for paid content. It runs
 on Cloudflare Workers with D1, R2, and KV, and you run it yourself.
 
-This repository is the node. The authoring plugin and its tools live in a
-separate repository and are out of scope here.
+This repository is the node, in two forms: a **deployable reference instance**
+(the Deploy button below builds it from source) and an **npm package**,
+`@sphere-pub/node`, for owners who keep their own Worker project and want the
+node as a dependency. [sphere.pub](https://sphere.pub) itself is the latter:
+the project site is a three-file instance of this package
+([sphere-pub](https://github.com/marianoviola/sphere-pub)). The authoring
+plugin and its tools live in a separate repository and are out of scope here.
 
 ## From Deploy to your first fragment
 
@@ -113,6 +118,59 @@ ports in `src/core/ports.ts` (`BlobStore`, `KvStore`, `EventStore`,
 future Node+S3+Postgres or AWS adapter would be a sibling folder under
 `platform/` with no change to `core/`.
 
+## Use as a package
+
+If you already run a Cloudflare Workers project, install the node instead of
+forking it. An instance is three files.
+
+```bash
+npm install @sphere-pub/node
+```
+
+`src/index.ts` — re-export the handler:
+
+```ts
+export { default } from "@sphere-pub/node";
+```
+
+`wrangler.toml` — your identity, vars, and bindings; the schema comes from the
+package, so point `migrations_dir` into it:
+
+```toml
+name = "my-node"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+
+[vars]
+SPHERE_PUBLISHER_NAME = "My Publisher"
+SPHERE_DEFAULT_LICENSE = "CC-BY"
+
+[[d1_databases]]
+binding = "SPHERE_DB"
+database_name = "my-node-db"
+migrations_dir = "node_modules/@sphere-pub/node/migrations"
+
+[[r2_buckets]]
+binding = "SPHERE_CONTENT"
+bucket_name = "my-node-content"
+
+[[kv_namespaces]]
+binding = "SPHERE_CACHE"
+```
+
+Then, as with any node: apply migrations, set the owner token, deploy.
+
+```bash
+wrangler d1 migrations apply SPHERE_DB --remote
+wrangler secret put SPHERE_OWNER_TOKEN
+wrangler deploy
+```
+
+The package also exposes the contract (`@sphere-pub/node/spec/fragment.schema.json`,
+`@sphere-pub/node/spec/node-api.md`) and a `sphere-node` bin that wraps the
+publish script below (`npx sphere-node <fragment-dir> [--remote]`). The
+`sphere-pub` repository is a complete, minimal example of this setup.
+
 ## Deploy
 
 ### Deploy to Cloudflare button
@@ -162,6 +220,7 @@ A fragment is a directory with `sphere.json`, `content.md`, and optional
 ```bash
 node scripts/publish.ts examples/fragments/sample            # dry run: validate + plan
 node scripts/publish.ts examples/fragments/sample --remote   # upload via wrangler
+npx sphere-node <fragment-dir> [--remote]                    # same, from a package consumer
 ```
 
 The publish path consumes the fragment contract only. It validates against
@@ -182,8 +241,16 @@ defect, not a feature.
 npm install
 npm test          # vitest
 npm run typecheck # tsc --noEmit
+npm run build     # bundle dist/ (worker entry, CLI, type declarations)
 npm run dev       # wrangler dev (needs .dev.vars + local D1 migrations)
 ```
+
+### Release
+
+The package is published to npm from a git tag: push a `v*` tag (matching the
+version in `package.json`) and the `release` workflow builds, tests, and runs
+`npm publish`. It needs an `NPM_TOKEN` repository secret with publish rights
+on the `@sphere-pub` scope.
 
 To run migrations against a local D1 for `wrangler dev`:
 
@@ -194,9 +261,9 @@ wrangler d1 migrations apply SPHERE_DB --local
 ## License
 
 The Sphere Node source code in this repository is licensed under the
-[Apache License 2.0](LICENSE).
+[MIT License](LICENSE), the same license as the Sphere plugin.
 
 This code license is separate from any content license. The CC BY license used
 for published content and fragments (for example the `SPHERE_DEFAULT_LICENSE`
 default and the sample fragment) applies to that content, not to this code.
-Apache 2.0 covers the node software; CC BY does not.
+MIT covers the node software; CC BY does not.

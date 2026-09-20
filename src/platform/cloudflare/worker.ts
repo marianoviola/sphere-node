@@ -77,7 +77,7 @@ export interface RequestContext {
   waitUntil(promise: Promise<unknown>): void;
 }
 
-interface Env {
+export interface Env {
   SPHERE_DB: D1Database;
   SPHERE_CONTENT: R2Bucket;
   SPHERE_CACHE: KVNamespace;
