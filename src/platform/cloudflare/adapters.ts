@@ -37,6 +37,9 @@ export function kvStore(ns: KVNamespace): KvStore {
     async put(key, value, options) {
       await ns.put(key, value, options);
     },
+    async delete(key) {
+      await ns.delete(key);
+    },
   };
 }
 
