@@ -1,17 +1,64 @@
 {
-  "name": "sphere-node",
+  "name": "@sphere-pub/node",
   "version": "1.0.0",
-  "private": false,
   "description": "Single-tenant, self-hosted Sphere Node: publishes a publisher's content as agent-readable fragments on Cloudflare Workers.",
   "type": "module",
   "license": "MIT",
+  "author": {
+    "name": "Mariano Viola",
+    "url": "https://github.com/marianoviola"
+  },
+  "homepage": "https://sphere.pub",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/marianoviola/sphere-node.git"
+  },
+  "bugs": {
+    "url": "https://github.com/marianoviola/sphere-node/issues"
+  },
+  "keywords": [
+    "sphere",
+    "fragment",
+    "agent-readable",
+    "publishing",
+    "cloudflare-workers",
+    "llms-txt"
+  ],
   "engines": {
     "node": ">=20"
   },
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/types/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/src/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./spec/fragment.schema.json": "./spec/fragment.schema.json",
+    "./spec/*": "./spec/*",
+    "./migrations/*": "./migrations/*",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "sphere-node": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "spec",
+    "migrations",
+    "examples/fragments/sample",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
+    "build": "node scripts/build.mjs",
+    "prepack": "npm run build",
     "dev": "wrangler dev",
     "publish:fragment": "node scripts/publish.ts",
     "deploy": "wrangler d1 migrations apply SPHERE_DB --remote && wrangler deploy"
@@ -19,6 +66,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250109.0",
     "@types/node": "^22.10.0",
+    "esbuild": "^0.21.5",
     "typescript": "^5.7.0",
     "vitest": "^2.1.0",
     "wrangler": "^4.0.0"
