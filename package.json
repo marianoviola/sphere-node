@@ -16,7 +16,14 @@
   "bugs": {
     "url": "https://github.com/marianoviola/sphere-node/issues"
   },
-  "keywords": ["sphere", "fragment", "agent-readable", "publishing", "cloudflare-workers", "llms-txt"],
+  "keywords": [
+    "sphere",
+    "fragment",
+    "agent-readable",
+    "publishing",
+    "cloudflare-workers",
+    "llms-txt"
+  ],
   "engines": {
     "node": ">=20"
   },
@@ -36,7 +43,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "sphere-node": "./dist/cli.js"
+    "sphere-node": "dist/cli.js"
   },
   "files": [
     "dist",
