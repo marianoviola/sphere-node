@@ -1,6 +1,6 @@
 {
   "name": "@sphere-pub/node",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Single-tenant, self-hosted Sphere Node: publishes a publisher's content as agent-readable fragments on Cloudflare Workers.",
   "type": "module",
   "license": "MIT",
@@ -36,6 +36,10 @@
     ".": {
       "types": "./dist/types/src/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./contract": {
+      "types": "./dist/types/src/contract.d.ts",
+      "default": "./dist/contract.js"
     },
     "./spec/fragment.schema.json": "./spec/fragment.schema.json",
     "./spec/*": "./spec/*",

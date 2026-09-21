@@ -40,6 +40,9 @@ export function memKvStore(): KvStore & { dump: Map<string, string> } {
     async put(key, value) {
       dump.set(key, value);
     },
+    async delete(key) {
+      dump.delete(key);
+    },
   };
 }
 

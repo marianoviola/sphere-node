@@ -18,6 +18,17 @@ await build({
   sourcemap: true,
 });
 
+// Contract entry: types only. The runtime module is intentionally empty; it
+// exists so "@sphere-pub/node/contract" resolves for bundlers as well as tsc.
+await build({
+  entryPoints: ["src/contract.ts"],
+  outfile: "dist/contract.js",
+  bundle: true,
+  format: "esm",
+  platform: "neutral",
+  target: "es2022",
+});
+
 // Publish CLI: runs under Node and shells out to wrangler. It reads
 // spec/fragment.schema.json relative to its own location (dist/ -> ../spec/),
 // so the spec directory ships alongside it in the package.

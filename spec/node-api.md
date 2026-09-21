@@ -255,9 +255,14 @@ Ledger event: `access` (free) or `preview` (gated).
 
 ## Owner face (bearer token, single owner)
 
-All owner endpoints require `Authorization: Bearer <SPHERE_OWNER_TOKEN>` and are
-read-only. Missing or wrong token returns `401`. Owner requests do NOT append
-ledger events.
+All owner endpoints require `Authorization: Bearer <SPHERE_OWNER_TOKEN>`.
+Missing or wrong token returns `401`. Owner requests do NOT append ledger
+events. Every owner endpoint is read-only except the publish route.
+
+The response shapes below are exported as TypeScript types from
+`@sphere-pub/node/contract` (`PublisherSummary`, `FragmentUsage`,
+`PaymentStatus`, `PublishResult`); the worker handlers are typed against the
+same definitions.
 
 ### `GET /owner/summary`
 
@@ -291,6 +296,36 @@ Payment ledger. Empty in v1; the shape is present for forward compatibility.
 ```json
 { "payments": [], "total": 0 }
 ```
+
+### `PUT /owner/fragments/{id}`
+
+Publish (upsert) one fragment. The one write in the contract: it drives the
+same validation and storage the CLI drives. Body is JSON, at most 1,000,000
+bytes:
+
+```json
+{
+  "manifest": { "id": "2026-01-15-sample-fragment", "title": "...", "license": "CC-BY", "access": { "policy": "free" } },
+  "content": "the full content.md body",
+  "media": [{ "name": "figure.svg", "content": "<svg .../>" }]
+}
+```
+
+`manifest` is validated against `fragment.schema.json` plus the access rules
+(gated policies need `access.payment` and a positive price); `manifest.id` must
+equal `{id}` in the path. `media` is optional; each entry is a text file stored
+under the fragment's media prefix.
+
+- `200` — `{ id, canonical, mediaCount, updatedTs }` (`PublishResult`).
+  `canonical` is the fragment's absolute canonical URL on this node.
+- `400` — `{ error }` with `invalid_json`, `manifest_required`,
+  `id_mismatch`, `content_required`, or `media_invalid`.
+- `413` — `{ error: "payload_too_large", limit }`.
+- `422` — `{ errors: [...] }`, the schema/access-rule violations.
+
+A successful publish drops the cached discovery document, so
+`/.well-known/sphere.json` lists the fragment on the next read rather than
+after the cache TTL.
 
 ## Ledger events
 

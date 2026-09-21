@@ -166,10 +166,15 @@ wrangler secret put SPHERE_OWNER_TOKEN
 wrangler deploy
 ```
 
-The package also exposes the contract (`@sphere-pub/node/spec/fragment.schema.json`,
-`@sphere-pub/node/spec/node-api.md`) and a `sphere-node` bin that wraps the
-publish script below (`npx sphere-node <fragment-dir> [--remote]`). The
-`sphere-pub` repository is a complete, minimal example of this setup.
+The package also exposes the contract — the schema at
+`@sphere-pub/node/spec/fragment.schema.json`, `@sphere-pub/node/spec/node-api.md`,
+and the TypeScript types at `@sphere-pub/node/contract` (manifest, sources,
+relations, owner-API responses; no Cloudflare dependencies) — and a
+`sphere-node` bin that wraps the publish script below
+(`npx sphere-node <fragment-dir> [--remote]`). Tools that read or write
+fragments, such as the Sphere plugin, consume the contract from here instead
+of vendoring it. The `sphere-pub` repository is a complete, minimal example of
+an instance.
 
 ## Deploy
 

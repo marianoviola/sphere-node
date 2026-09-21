@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { handleRequest } from "../src/platform/cloudflare/worker.ts";
 import { mediaKeyFor } from "../src/core/fragments.ts";
-import { makeDeps, testCtx, get, readJson } from "./helpers.ts";
+import { makeDeps, memKvStore, testCtx, get, readJson } from "./helpers.ts";
 
 const AUTH = { authorization: "Bearer secret-owner-token" };
 
@@ -59,6 +59,30 @@ describe("owner publish route", () => {
     );
     expect(content.status).toBe(200);
     expect(await content.text()).toBe("the full published body");
+  });
+
+  it("invalidates the cached discovery document so the publish is visible at once", async () => {
+    const cache = memKvStore();
+    const deps = makeDeps({ cache });
+
+    // Warm the discovery cache on an empty node.
+    const before = await readJson(await handleRequest(get("/.well-known/sphere.json"), deps, testCtx()));
+    expect(before.fragment_count).toBe(0);
+    expect(cache.dump.has("discovery:v1")).toBe(true);
+
+    const res = await handleRequest(
+      put("/owner/fragments/2026-02-01-published", { manifest: freeManifest, content: "body" }),
+      deps,
+      testCtx(),
+    );
+    expect(res.status).toBe(200);
+
+    // The cached copy is gone, and the next read lists the new fragment
+    // instead of serving the stale document until its TTL runs out.
+    expect(cache.dump.has("discovery:v1")).toBe(false);
+    const after = await readJson(await handleRequest(get("/.well-known/sphere.json"), deps, testCtx()));
+    expect(after.fragment_count).toBe(1);
+    expect(after.fragments[0].id).toBe("2026-02-01-published");
   });
 
   it("appends no ledger event for a publish (owner write, not an access)", async () => {

@@ -14,6 +14,7 @@ import { renderRobotsTxt } from "../../core/robots.ts";
 import { renderSitemap } from "../../core/sitemap.ts";
 import type { JsonSchema } from "../../core/schema.ts";
 import type { FragmentManifest, PublisherRef } from "../../core/types.ts";
+import type { FragmentUsage, PaymentStatus, PublisherSummary, PublishResult } from "../../core/owner-api.ts";
 // The publish route validates against the SAME contract the CLI uses. esbuild
 // (wrangler) and vitest both bundle this JSON import, so the schema ships inside
 // the Worker rather than being read from disk at runtime.
@@ -404,26 +405,29 @@ async function handleOwnerSummary(deps: Deps): Promise<Response> {
     }),
   );
 
-  return json({
+  const body: PublisherSummary = {
     publisher: deps.config.publisherName,
     fragment_count: fragmentCount,
     events: { total: summary.total, by_type: summary.byType },
     top_fragments: topWithTitles,
     revenue: { total: paymentTotal, currency: "USD", payments: payments.length },
-  });
+  };
+  return json(body);
 }
 
 async function handleOwnerUsage(deps: Deps, id: string): Promise<Response> {
   const points = await deps.events.usageForFragment(id);
-  return json({
+  const body: FragmentUsage = {
     fragment_id: id,
     points: points.map((p) => ({ day: p.day, event_type: p.eventType, count: p.count })),
-  });
+  };
+  return json(body);
 }
 
 async function handleOwnerPayments(deps: Deps): Promise<Response> {
   const [payments, total] = await Promise.all([deps.payments.list(), deps.payments.total()]);
-  return json({ payments, total });
+  const body: PaymentStatus = { payments, total };
+  return json(body);
 }
 
 /** Cap on the publish body: enough for a long fragment, small enough to reject abuse. */
@@ -506,8 +510,17 @@ async function handleOwnerPublish(deps: Deps, request: Request, id: string): Pro
     await deps.blobs.put(mediaKeyFor(typed.id, item.name), item.content);
   }
   await deps.fragments.upsert(stored);
+  // The discovery document lists every fragment; drop the cached copy so the
+  // next read reflects this publish instead of waiting out the TTL.
+  await deps.cache.delete(DISCOVERY_CACHE_KEY);
 
-  return json({ id: typed.id, canonical: canonicalFor(request, typed.id), mediaCount: media.length, updatedTs });
+  const result: PublishResult = {
+    id: typed.id,
+    canonical: canonicalFor(request, typed.id),
+    mediaCount: media.length,
+    updatedTs,
+  };
+  return json(result);
 }
 
 /**
